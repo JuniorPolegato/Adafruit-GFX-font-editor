@@ -8,10 +8,10 @@ For the GLCD font, you can use it to see and create a new one, but you can place
 
 You can see some letters added to .h font files in my project [TTGOWeatherStation](https://github.com/JuniorPolegato/TTGOWeatherStation).
 
-![ã font 14](https://github.com/JuniorPolegato/Adafruit-GFX-font-editor/blob/7e6e2cbf445202a43220634362a8634d8563bbf4/assets/Screenshot%20from%202023-10-21%2016-54-32.png)
+![ã font 14](https://raw.githubusercontent.com/JuniorPolegato/Adafruit-GFX-font-editor/main/assets/Screenshot%20from%202023-10-21%2016-54-32.png)
 
-![ã font glcd](https://github.com/JuniorPolegato/Adafruit-GFX-font-editor/blob/7e6e2cbf445202a43220634362a8634d8563bbf4/assets/Screenshot%20from%202023-10-24%2003-00-58.png)
+![ã font glcd](https://raw.githubusercontent.com/JuniorPolegato/Adafruit-GFX-font-editor/main/assets/Screenshot%20from%202023-10-24%2003-00-58.png)
 
-![Ã font glcd](https://github.com/JuniorPolegato/Adafruit-GFX-font-editor/blob/7e6e2cbf445202a43220634362a8634d8563bbf4/assets/Screenshot%20from%202023-10-24%2003-11-01.png)
+![Ã font glcd](https://raw.githubusercontent.com/JuniorPolegato/Adafruit-GFX-font-editor/main/assets/Screenshot%20from%202023-10-24%2003-11-01.png)
 
-![Â font glcd](https://github.com/JuniorPolegato/Adafruit-GFX-font-editor/blob/7e6e2cbf445202a43220634362a8634d8563bbf4/assets/Screenshot%20from%202023-10-24%2003-14-13.png)
+![Â font glcd](https://raw.githubusercontent.com/JuniorPolegato/Adafruit-GFX-font-editor/main/assets/Screenshot%20from%202023-10-24%2003-14-13.png)
