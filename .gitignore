@@ -159,7 +159,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# C, C++ and H files
+# C, C++ and H files, plus temporary font.py
 *.c
 *.h
 *.cpp
+font.py

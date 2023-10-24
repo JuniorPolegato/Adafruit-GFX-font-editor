@@ -34,6 +34,7 @@ def utf8_to_uint16(utf8_data):  # or python ord function
         lowSurrogate = 0xDC00 + (CP & 0x3FF)
         return (highSurrogate << 16) | lowSurrogate
 
+lf = '\n'
 default = "Orbitron_Medium_20.h" if len(sys.argv) == 1 else sys.argv[1]
 file_path = question("File path", default, str)
 with open(file_path, encoding="utf-8") as fd:
@@ -50,22 +51,22 @@ with open("font.py", "w", encoding="utf-8") as fd:
 
 font = importlib.import_module("font")
 
+has_glyphs = True
 try:
     font.glyphs
 except AttributeError:
+    has_glyphs = False
     print("No font map of glyphs found, enter fixed values for all itens")
     width = question("Width", 8)
     height = question("Height", 5)
     first_char = question("First character code", 0)
     code_page = question("Codepage", "CP437", str)
     size_bytes = (width * height + 7) // 8
-    font.glyphs = {(first_char + i).to_bytes().decode(code_page):
+    font.glyphs = {(first_char + i).to_bytes().decode(code_page) if first_char + i < 256 else f"0x{first_char + i:X}":
                         (size_bytes * i, width, height, 0, 0, 0)
-                   for i in range(len(font.bitmaps) // size_bytes)}
+                         for i in range(len(font.bitmaps) // size_bytes)}
 
 show_symbol = input("Symbol to show [Enter for all]: ").strip()[:1]
-
-_hex = lambda i: hex(i).upper().replace('X', 'x')
 
 i = -1
 for c, (offset, width, height, xAdvance, xOffset, yOffset) in font.glyphs.items():
@@ -80,7 +81,7 @@ for c, (offset, width, height, xAdvance, xOffset, yOffset) in font.glyphs.items(
     print("_" * 100)
     print(f"{info}")
     print("-" * 100)
-    print(f"{code_page}: {repr(c)} {i} {_hex(i)}  ===>  unicode: {ord(c)} - {_hex(ord(c))}\n")
+    print(f"{code_page}: {repr(c)} {i} 0x{i:04X}  ===>  unicode: {ord(c)} - 0x{ord(c):04X}\n")
     bits_matrix = [bits_str[i * width:(i + 1) * width] for i in range(height)]
     for line in bits_matrix:
         print(line.replace("0", " ").replace("1", "█"), line)
@@ -106,21 +107,24 @@ xOffset = question("xOffset", 1)
 yOffset = question("yOffset", -height)
 symbol_utf8 = question("symbol (utf-8 char)", "×", str)
 symbol_unicode = ord(symbol_utf8)
-symbol_hex = hex(symbol_unicode).upper().replace('X', 'x')
+symbol_hex = f"0x{symbol_unicode:04X}"
 
 print("_" * 100, end="\n\n")
 
 bits_sequence = ("".join(symbol_bits) + "0" * 7)[:(width * height + 7) // 8 * 8]
-hex_list = [hex(int(bits_sequence[i * 8: (i + 1) * 8], 2)).upper().replace("X", "x")
+hex_list = [f"0x{int(bits_sequence[i * 8: (i + 1) * 8], 2):02X}"
             for i in range(len(bits_sequence) // 8)]
-bitmap_line = f"{','.join(hex_list)}, // '{symbol_utf8}'"
+bitmap_line = f"{(',' if has_glyphs else ', ').join(hex_list)}, // '{symbol_utf8}'"
+if not has_glyphs:
+    bitmap_line += f" - {symbol_hex} - {symbol_unicode}"
 print("Bitmaps line (added at the end of bitmaps):")
 print(f"\t{bitmap_line}")
 
-glyph_line = (f"{{ {len(font.bitmaps):5d},{width:4d},{height:4d},{xAdvance:4d},"
-              f"{xOffset:5d},{yOffset:5d} }}, // '{symbol_utf8}' {symbol_hex}")
-print(f"\nGlyphs line (added at {symbol_hex} - {symbol_unicode} position):")
-print(f"\t{glyph_line}")
+if has_glyphs:
+    glyph_line = (f"{{ {len(font.bitmaps):5d},{width:4d},{height:4d},{xAdvance:4d},"
+                f"{xOffset:5d},{yOffset:5d} }}, // '{symbol_utf8}' {symbol_hex}")
+    print(f"\nGlyphs line (added at {symbol_hex} - {symbol_unicode} position):")
+    print(f"\t{glyph_line}")
 
 print("_" * 100, end="\n\n")
 
@@ -148,41 +152,44 @@ while h_font:
     else:
         break
 
-glyphs = [line]
-while h_font:
-    line = h_font.pop(0)
-    if line.lstrip()[:1] == '{':
-        glyphs.append(line)
+if has_glyphs:
+    glyphs = [line]
+    while h_font:
+        line = h_font.pop(0)
+        if line.lstrip()[:1] == '{':
+            glyphs.append(line)
+        else:
+            break
+
+    if glyphs[-1].rstrip()[-1] != "," and not re.match(r".*,\s*//", glyphs[-1]):
+        glyphs[-1] = re.sub(r"^(\s*\{[ \d,-]+\})(.*)", r"\1,\2", glyphs[-1])
+
+    glyph_placeholder = re.sub("'.*'.*", "''", re.sub(r"0(?=0)", " ", re.sub(r"\d", "0", glyphs[0])))
+    indentation = re.sub(r"^(\s*).*$", r"\1", glyphs[0])
+    _declaration, _first, _last, _yAdvance = "\n".join(h_font).rsplit(",", 3)
+    first = int(_first.strip(), 16 if _first.strip()[:2] == "0x" else 10)
+    if first > symbol_unicode:
+        for i in range(first - symbol_unicode - 1):
+            glyphs.insert(0, glyph_placeholder)
+        glyphs.insert(0, f"{indentation}{glyph_line}")
+        first = symbol_hex
+        last = _last.strip()
+    elif symbol_unicode > len(glyphs) + first - 1:
+        for i in range(symbol_unicode - len(glyphs) - first):
+            glyphs.append(glyph_placeholder)
+        glyphs.append(f"{indentation}{glyph_line}")
+        first = _first.strip()
+        last = symbol_hex
     else:
-        break
+        glyphs[symbol_unicode - first] = f"{indentation}{glyph_line}"
+        first = _first.strip()
+        last = _last.strip()
 
-if glyphs[-1].rstrip()[-1] != "," and not re.match(r".*,\s*//", glyphs[-1]):
-    glyphs[-1] = re.sub(r"^(\s*\{[ \d,-]+\})(.*)", r"\1,\2", glyphs[-1])
+    new_h_font = (f"{lf.join(new_h_font)}\n{lf.join(glyphs)}\n{line}\n"
+                f"{', '.join((_declaration, first, last, _yAdvance.lstrip(' ')))}\n")
 
-glyph_placeholder = re.sub("'.*'.*", "''", re.sub(r"0(?=0)", " ", re.sub(r"\d", "0", glyphs[0])))
-indentation = re.sub(r"^(\s*).*$", r"\1", glyphs[0])
-_declaration, _first, _last, _yAdvance = "\n".join(h_font).rsplit(",", 3)
-first = int(_first.strip(), 16 if _first.strip()[:2] == "0x" else 10)
-if first > symbol_unicode:
-    for i in range(first - symbol_unicode - 1):
-        glyphs.insert(0, glyph_placeholder)
-    glyphs.insert(0, f"{indentation}{glyph_line}")
-    first = symbol_hex
-    last = _last.strip()
-elif symbol_unicode > len(glyphs) + first - 1:
-    for i in range(symbol_unicode - len(glyphs) - first):
-        glyphs.append(glyph_placeholder)
-    glyphs.append(f"{indentation}{glyph_line}")
-    first = _first.strip()
-    last = symbol_hex
-else:
-    glyphs[symbol_unicode - first] = f"{indentation}{glyph_line}"
-    first = _first.strip()
-    last = _last.strip()
-
-lf = '\n'
-new_h_font = (f"{lf.join(new_h_font)}\n{lf.join(glyphs)}\n{line}\n"
-              f"{', '.join((_declaration, first, last, _yAdvance.lstrip(' ')))}\n")
+else:  # no glyphs
+    new_h_font = (f"{lf.join(new_h_font)}\n")
 
 # print(new_h_font)
 
