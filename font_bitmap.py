@@ -41,8 +41,8 @@ with open(file_path, encoding="utf-8") as fd:
     h_font = fd.read()
 
 py_font = h_font.replace("//", "#").replace("};", "]", 1)
-py_font = re.sub(r".*{\n", "bitmaps = [\n", py_font)
-py_font = re.sub(r".*Glyphs\[\].*", "glyphs = {", py_font)
+py_font = re.sub(r".*(Bitmaps|font|font_ext)\[\].*{\n", "bitmaps = [\n", py_font)
+py_font = re.sub(r".*Glyphs\[\].*{\n", "glyphs = {\n", py_font)
 py_font = re.sub(r".*(GFXfont|GFXglyph).*", "", py_font)
 py_font = re.sub(r"[\t ]+\{([^}\n]+)\}[, /#]+('[^\n]*')", r"    \2: [\1],  # ", py_font).replace("'''", '"\'"').replace("'\\'", "'\\\\'")
 
@@ -54,6 +54,7 @@ font = importlib.import_module("font")
 has_glyphs = True
 try:
     font.glyphs
+    code_page = 'utf-8'
 except AttributeError:
     has_glyphs = False
     print("No font map of glyphs found, enter fixed values for all itens")
@@ -72,7 +73,7 @@ i = -1
 for c, (offset, width, height, xAdvance, xOffset, yOffset) in font.glyphs.items():
     i += 1
     next_offset = offset + (width * height + 7) // 8
-    if show_symbol and c != show_symbol:
+    if show_symbol and c != show_symbol or c == '':
         continue
     bits = font.bitmaps[offset:next_offset]
     bits_str = "".join(f"{b:08b}" for b in bits)[:width * height]
@@ -81,7 +82,11 @@ for c, (offset, width, height, xAdvance, xOffset, yOffset) in font.glyphs.items(
     print("_" * 100)
     print(f"{info}")
     print("-" * 100)
-    print(f"{code_page}: {repr(c)} {i} 0x{i:04X}  ===>  unicode: {ord(c)} - 0x{ord(c):04X}\n")
+    print(f"{code_page}: {repr(c)} {i} 0x{i:04X}", end="")
+    if len(c) == 1 or code_page == 'utf-8':
+        print(f"  ===>  unicode: {ord(c)} - 0x{ord(c):04X}\n")
+    else:
+        print(f"  ===>  code: {int(c, 16)}\n")
     bits_matrix = [bits_str[i * width:(i + 1) * width] for i in range(height)]
     for line in bits_matrix:
         print(line.replace("0", " ").replace("1", "█"), line)
